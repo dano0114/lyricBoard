@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Så ska det låta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<header>
+  <h1>Så ska det låta</h1>
+
+  <select id="song-select">
+    <option value="">— Välj låt —</option>
+    {% for i in range(1, song_count + 1) %}
+    <option value="{{ i }}">Låt {{ i }}</option>
+    {% endfor %}
+  </select>
+
+  <span id="word-count" class="word-count"></span>
+</header>
+
+<main>
+  <div id="board"></div>
+  <p id="empty-msg" class="empty-msg">Välj en låt för att börja</p>
+</main>
+
+<div class="fab">
+  <button id="flip-all-btn" disabled>Vänd alla</button>
+  <button id="reset-btn" disabled>Återställ</button>
+</div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
