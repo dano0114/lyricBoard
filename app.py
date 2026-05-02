@@ -8,7 +8,7 @@ import time
 app = Flask(__name__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-GITHUB_REPO = os.environ.get('GITHUB_REPO')  # e.g. "youruser/lyricBoard"
+GITHUB_REPO = os.environ.get('GITHUB_REPO')
 GITHUB_BRANCH = os.environ.get('GITHUB_BRANCH', 'main')
 CACHE_TTL = int(os.environ.get('CACHE_TTL', 60))
 
@@ -25,15 +25,8 @@ def _github_songs():
             for i, f in enumerate(files)]
 
 
-def _github_lyrics(download_url):
-    import requests
-    r = requests.get(download_url, timeout=5)
-    r.raise_for_status()
-    words = []
-    for i, row in enumerate(csv.reader(io.StringIO(r.text))):
-        if row and row[0].strip():
-            words.append({'number': i + 1, 'word': row[0].strip()})
-    return words
+def _raw_rows(source):
+    return [row[0].strip() for row in csv.reader(source) if row and row[0].strip()]
 
 
 def get_songs():
@@ -52,19 +45,24 @@ def get_songs():
 def get_lyrics(song_id):
     songs = get_songs()
     if song_id < 1 or song_id > len(songs):
-        return None
+        return None, None
 
     if not GITHUB_REPO:
-        words = []
         with open(songs[song_id - 1]['file'], newline='', encoding='utf-8') as f:
-            for i, row in enumerate(csv.reader(f)):
-                if row and row[0].strip():
-                    words.append({'number': i + 1, 'word': row[0].strip()})
-        return words
+            rows = _raw_rows(f)
+    else:
+        if song_id not in _cache['lyrics']:
+            import requests
+            r = requests.get(songs[song_id - 1]['download_url'], timeout=5)
+            r.raise_for_status()
+            _cache['lyrics'][song_id] = _raw_rows(io.StringIO(r.text))
+        rows = _cache['lyrics'][song_id]
 
-    if song_id not in _cache['lyrics']:
-        _cache['lyrics'][song_id] = _github_lyrics(songs[song_id - 1]['download_url'])
-    return _cache['lyrics'][song_id]
+    if not rows:
+        return None, None
+    title = rows[0]
+    words = [{'number': i, 'word': w} for i, w in enumerate(rows[1:], 1)]
+    return title, words
 
 
 @app.route('/')
@@ -75,10 +73,10 @@ def index():
 
 @app.route('/api/lyrics/<int:song_id>')
 def api_lyrics(song_id):
-    words = get_lyrics(song_id)
+    title, words = get_lyrics(song_id)
     if words is None:
         return jsonify({'error': 'Hittades inte'}), 404
-    return jsonify({'words': words, 'count': len(words)})
+    return jsonify({'words': words, 'count': len(words), 'title': title})
 
 
 if __name__ == '__main__':
