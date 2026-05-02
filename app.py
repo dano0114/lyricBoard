@@ -20,7 +20,7 @@ def _github_songs():
     url = f'https://api.github.com/repos/{GITHUB_REPO}/contents/data?ref={GITHUB_BRANCH}'
     r = requests.get(url, timeout=5)
     r.raise_for_status()
-    files = sorted(f for f in r.json() if f['name'].endswith('.csv'))
+    files = sorted((f for f in r.json() if f['name'].endswith('.csv')), key=lambda f: f['name'])
     return [{'id': i + 1, 'name': f['name'], 'download_url': f['download_url']}
             for i, f in enumerate(files)]
 
